@@ -3,7 +3,6 @@ import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from utils import get_forex_signal
-
 if __name__ == "__main__": 
     import asyncio
     from aiogram import Bot, Dispatcher
