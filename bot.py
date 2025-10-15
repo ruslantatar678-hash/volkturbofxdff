@@ -1,48 +1,41 @@
 import os
-import sys
 import asyncio
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from dotenv import load_dotenv
-from utils import get_forex_signal
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.filters import Command
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 
-# Загружаем переменные из .env (для локальных запусков)
-load_dotenv()
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 
-# Проверяем токены
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-ALPHAVANTAGE_API_KEY = os.getenv("ALPHAVANTAGE_API_KEY")
+print(f"✅ Длина токена TELEGRAM: {len(TELEGRAM_BOT_TOKEN)}")
 
 if not TELEGRAM_BOT_TOKEN:
-    print("❌ ERROR: TELEGRAM_BOT_TOKEN is not set! Set it in Render Dashboard → Environment.", flush=True)
-    sys.exit(1)
+    raise ValueError("❌ TELEGRAM_BOT_TOKEN не найден! Убедись, что он добавлен в переменные окружения Render.")
 
-print("✅ Длина токена TELEGRAM:", len(TELEGRAM_BOT_TOKEN), flush=True)
-
-# --- Бот ---
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 dp = Dispatcher()
 
-@dp.message(commands=["start"])
-async def start_command(message: types.Message):
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📈 Сигнал на 2 мин", callback_data="signal_2")],
-        [InlineKeyboardButton(text="📉 Сигнал на 5 мин", callback_data="signal_5")]
-    ])
-    await message.answer("Выберите период анализа:", reply_markup=kb)
+# Главное меню
+menu = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="📈 Вверх"), KeyboardButton(text="📉 Вниз")]
+    ],
+    resize_keyboard=True
+)
 
-@dp.callback_query()
-async def callbacks(call: types.CallbackQuery):
-    if call.data.startswith("signal_"):
-        period = int(call.data.split("_")[1])
-        await call.message.answer("🔍 Анализирую рынок...")
-        signal = await get_forex_signal(period)
-        await call.message.answer(f"📊 Сигнал ({period} мин): {signal}")
+@dp.message(Command("start"))
+async def start(message: Message):
+    await message.answer("👋 Привет! Выберите направление для сигнала:", reply_markup=menu)
+
+@dp.message(F.text == "📈 Вверх")
+async def signal_up(message: Message):
+    await message.answer("🔼 Сигнал на ВВЕРХ (действует 2-5 минут)")
+
+@dp.message(F.text == "📉 Вниз")
+async def signal_down(message: Message):
+    await message.answer("🔽 Сигнал на ВНИЗ (действует 2-5 минут)")
 
 async def main():
-    print("🚀 Bot started successfully!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
-
