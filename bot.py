@@ -1,36 +1,21 @@
-import os
-import asyncio
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from utils import get_forex_signal
+# --- проверка переменных окружения (вставить в самом верху bot.py) ---
+import os, sys
+from dotenv import load_dotenv
 
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-bot = Bot(token=TOKEN)
-dp = Dispatcher()
+load_dotenv()  # для локальной разработки; в Render не обязателен
 
-async def start_menu(message: types.Message):
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📈 Сигнал на 2 мин", callback_data="signal_2")],
-        [InlineKeyboardButton(text="📉 Сигнал на 5 мин", callback_data="signal_5")]
-    ])
-    await message.answer("Выберите период для анализа:", reply_markup=kb)
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+ALPHAVANTAGE_API_KEY = os.getenv("ALPHAVANTAGE_API_KEY")
 
-@dp.message(commands=["start"])
-async def start_command(message: types.Message):
-    await start_menu(message)
+# Выдаём короткое информативное сообщение и выходим, если чего-то нет
+if not TELEGRAM_BOT_TOKEN:
+    print("❌ ERROR: TELEGRAM_BOT_TOKEN is not set! Set it in Render Dashboard → Environment.", flush=True)
+    sys.exit(1)
 
-@dp.callback_query()
-async def callbacks(call: types.CallbackQuery):
-    if call.data.startswith("signal_"):
-        period = int(call.data.split("_")[1])
-        await call.message.answer("🔍 Анализирую рынок...")
-        signal = await get_forex_signal(period)
-        await call.message.answer(f"📊 Сигнал ({period} мин): {signal}")
-        await start_menu(call.message)
+if not ALPHAVANTAGE_API_KEY:
+    print("❌ ERROR: ALPHAVANTAGE_API_KEY is not set! Set it in Render Dashboard → Environment.", flush=True)
+    sys.exit(1)
 
-async def main():
-    await dp.start_polling(bot)
-
-if __name__ == "__main__":
-    asyncio.run(main())
+# Для отладки можно напечатать длину токена (не сам токен):
+print("✅ TELEGRAM token length:", len(TELEGRAM_BOT_TOKEN), flush=True)
+# -------------------------------------------------------------------
